@@ -6,6 +6,10 @@
 
 ``pip3 install telethon``
 
+``git clone https://github.com/kekoDev/telethon-with-echo`` 
+
+``cd telethon-with-echo``
+
 * بعد اكتمال التصيب يمكنك تشغيل الملف من خلال امر : 
 
 ``python3 main.py``
