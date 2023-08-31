@@ -1,4 +1,7 @@
 # سورس تجميع تلقائي لبوتات صانع ايكو
 
+ 
+# التنصيب : 
+``pip3 install requests``
 
-#التنصيب : 
+``pip3 install telethon``
