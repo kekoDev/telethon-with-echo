@@ -5,14 +5,15 @@ from telethon.tl.functions.messages import GetMessagesViewsRequest
 import requests
 from time import sleep
 
-API_ID = '567890'
-API_HASH = 'hdgfgfdhhgfdghfdgfhd'
-client = TelegramClient('session', API_ID, API_HASH)
-
+API_ID = '25875948'
+API_HASH = 'bbc8cd4753b320c932bd56254d2917a0'
+user_phone = input("ادخل رقم الهاتف : ")
+client = TelegramClient(user_phone, API_ID, API_HASH)
+    
 def main():
     client.connect()
     if not client.is_user_authorized():
-        print("- تم تسجيل الخروج من الحساب !")
+        print("تم تسجيل الخروج من الحساب")
         return 0
     else:
         user_id = client.get_me().id
