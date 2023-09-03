@@ -1,6 +1,6 @@
 #!/bin/bash
-apk get python3
-apk get py-pip
+apk add python3
+apk add py-pip
 pip install telethon
 pip install python-telegram-bot
 wget "https://raw.githubusercontent.com/kekoDev/telethon-with-echo/main/bot.py"
