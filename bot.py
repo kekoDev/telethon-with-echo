@@ -23,14 +23,23 @@ except FileNotFoundError:
     info = {}
 
 if "token" not in info:
-    bot_token = input("Enter the bot token : ")
-    info["token"] = bot_token
-    with open("echo_data.json", "w") as json_file:
-        json.dump(info, json_file)
+    while (True):
+        bot_token = input("Enter the bot token : ")
+        response = requests.request(
+            "GET", f"https://apt.telegram.org/bot{bot_token}/getme")
+        response_json = response.json()
+        if (response_json["ok"] == True):
+            info["token"] = bot_token
+            with open("echo_data.json", "w") as json_file:
+                json.dump(info, json_file)
+        else:
+            print("token is not correct !")
 else:
     bot_token = info["token"]
+
 if "sudo" not in info:
     info["sudo"] = input("Enter the your telegram ID : ")
+    info["admins"] = {}
     with open("echo_data.json", "w") as json_file:
         json.dump(info, json_file)
 
