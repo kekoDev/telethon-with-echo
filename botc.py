@@ -21,7 +21,6 @@ try:
         info = json.load(json_file)
 except FileNotFoundError:
     info = {}
-
 if "token" not in info:
     while (True):
         bot_token = input("Enter the bot token : ")
@@ -219,12 +218,8 @@ what_need_to_do_echo = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global what_need_to_do_echo
+    print(update)
     if (update.message.chat.type == "private"):
-        if "sudo" not in info:
-            await update.message.reply_text("تم تعين حسابك ك مطور في البوت !")
-            info["sudo"] = update.message.chat.id
-            with open("echo_data.json", "w") as json_file:
-                json.dump(info, json_file)
         if (update.message.chat.id == info["sudo"]):
             if not os.path.isdir("echo_ac/"+str(update.message.chat.id)):
                 os.makedirs("echo_ac/"+str(update.message.chat.id))
