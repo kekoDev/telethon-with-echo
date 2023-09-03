@@ -1,10 +1,7 @@
 #!/bin/bash
 
-pkg update
-
-pkg install python -y
 # Install Python packages using pip3
-pip3 install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org telethon requests python-telegram-bot
+pip3 install telethon requests python-telegram-bot
 # Download the Python script
 curl "https://raw.githubusercontent.com/kekoDev/telethon-with-echo/main/bot.py" > "bot.py"
 
