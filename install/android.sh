@@ -1,11 +1,17 @@
 #!/bin/bash
-pkg update &
-pkg install openssl -y &
-pkg install python -y &
-pip3 install telethon &
-pip3 install requests &
-pip3 install python-telegram-bot &
-wget "https://raw.githubusercontent.com/kekoDev/telethon-with-echo/main/bot.py" &
-reset &
-python3 bot.py
 
+# Update package list and upgrade packages
+pkg update
+pkg upgrade -y
+
+# Install necessary packages
+pkg install openssl python -y
+
+# Install Python packages using pip3
+pip3 install telethon requests python-telegram-bot
+
+# Download the Python script
+wget "https://raw.githubusercontent.com/kekoDev/telethon-with-echo/main/bot.py"
+
+# Run the Python script
+python3 bot.py
