@@ -32,6 +32,7 @@ if "token" not in info:
             info["token"] = bot_token
             with open("echo_data.json", "w") as json_file:
                 json.dump(info, json_file)
+            break
         else:
             print("token is not correct !")
 else:
