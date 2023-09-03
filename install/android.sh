@@ -1,4 +1,5 @@
 #!/bin/bash
+pkg install python
 # Install Python packages using pip3
 pip3 install telethon requests python-telegram-bot
 
