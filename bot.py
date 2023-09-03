@@ -26,7 +26,7 @@ if "token" not in info:
     while (True):
         bot_token = input("Enter the bot token : ")
         response = requests.request(
-            "GET", f"https://apt.telegram.org/bot{bot_token}/getme")
+            "GET", f"https://api.telegram.org/bot{bot_token}/getme")
         response_json = response.json()
         if (response_json["ok"] == True):
             info["token"] = bot_token
