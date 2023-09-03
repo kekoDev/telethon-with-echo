@@ -1,5 +1,6 @@
 #!/bin/bash
 pkg update
+pkg install openssl -y
 pkg install python3 -y
 pip3 install telethon
 pip3 install requests
