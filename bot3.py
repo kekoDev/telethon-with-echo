@@ -45,7 +45,7 @@ if "sudo" not in info:
         json.dump(info, json_file)
 
 
-def background_task(phonex, bot_username, sudo):
+async def background_task(phonex, bot_username, sudo):
     try:
         client = TelegramClient(f"echo_ac/{sudo}/{phonex}", API_ID, API_HASH)
         @client.on(events.NewMessage)
