@@ -36,6 +36,6 @@ fi
 
 # Run the downloaded Python script
 python3 "$temp_script"
-
+ 
 # Clean up the temporary file
 rm "$temp_script"
