@@ -48,6 +48,7 @@ if "sudo" not in info:
 async def background_task(phonex, bot_username, sudo):
     try:
         client = TelegramClient(f"echo_ac/{sudo}/{phonex}", API_ID, API_HASH)
+
         @client.on(events.NewMessage)
         async def handle_new_message(event):
             if event.is_channel:
@@ -56,62 +57,64 @@ async def background_task(phonex, bot_username, sudo):
                     id=[event.message.id],
                     increment=True
                 ))
-        await client.connect()
-    except:
-        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+        await client.start()
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"حدث خطا في الحساب : {phonex}"
         })
         await client.disconnect()
         return 0
-    if not client.is_user_authorized():
-        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+    if not await client.is_user_authorized():
+        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"حدث خطا في الحساب : {phonex}"
         })
         await client.disconnect()
         return 0
     else:
-        user_id = await client.get_me().id
+        me = await client.get_me()
+        user_id = me.id
         response = requests.request(
             "GET", f"https://bot.keko.dev/api/?login={user_id}&bot_username={bot_username}")
         response_json = response.json()
-        if (response_json["ok"] == True):
-            echo_token = response_json["token"]
-            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+        if response_json.get("ok", False):
+            echo_token = response_json.get("token", "")
+            await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                 "chat_id": sudo,
                 "text": f"- تم تسجيل الدخول بنجاح, توكن حسابك : {echo_token} \n\n- {phonex}"
             })
-            while (True):
+            while True:
                 response = requests.request(
                     "GET", f"https://bot.keko.dev/api/?token={echo_token}")
                 response_json = response.json()
-                if (response_json["ok"] == False):
-                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                if not response_json.get("ok", False):
+                    await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
-                        "text": "- "+response_json["msg"]+f" \n\n- {phonex}"
+                        "text": "- "+response_json.get("msg", "")+f" \n\n- {phonex}"
                     })
-                    client.disconnect()
+                    await client.disconnect()
                     break
-                requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                     "chat_id": sudo,
-                    "text": "- جاري الاشتراك في : "+response_json["type"]+" -> "+response_json["return"]+f" \n\n- {phonex}"
+                    "text": "- جاري الاشتراك في : "+response_json.get("type", "")+" -> "+response_json.get("return", "")+f" \n\n- {phonex}"
                 })
-                if (response_json["type"] == "link"):
+                if response_json.get("type", "") == "link":
                     try:
-                        await client(ImportChatInviteRequest(response_json["tg"]))
-                        sleep(2)
+                        await client(ImportChatInviteRequest(response_json.get("tg", "")))
+                        await asyncio.sleep(2)
                         messages = await client.get_messages(
-                            int(response_json["return"]), limit=20)
+                            int(response_json.get("return", "")), limit=20)
                         MSG_IDS = [message.id for message in messages]
                         await client(GetMessagesViewsRequest(
-                            peer=int(response_json["return"]),
+                            peer=int(response_json.get("return", "")),
                             id=MSG_IDS,
                             increment=True
                         ))
                         try:
                             await client(SendReactionRequest(
-                                peer=int(response_json["return"]),
+                                peer=int(response_json.get("return", "")),
                                 msg_id=messages[0].id,
                                 big=True,
                                 add_to_recent=True,
@@ -119,29 +122,29 @@ async def background_task(phonex, bot_username, sudo):
                                     emoticon='👍'
                                 )]
                             ))
-                        except:
-                            print("error")
+                        except Exception as e:
+                            print(f"Error: {str(e)}")
                     except Exception as e:
-                        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
                             "text": f"- خطآ : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
-                        sleep(100)
+                        await asyncio.sleep(100)
                 else:
                     try:
-                        await client(JoinChannelRequest(response_json["return"]))
-                        sleep(2)
-                        entity = client.get_entity(response_json["return"])
+                        await client(JoinChannelRequest(response_json.get("return", "")))
+                        await asyncio.sleep(2)
+                        entity = await client.get_entity(response_json.get("return", ""))
                         messages = await client.get_messages(entity, limit=20)
                         MSG_IDS = [message.id for message in messages]
                         await client(GetMessagesViewsRequest(
-                            peer=response_json["return"],
+                            peer=response_json.get("return", ""),
                             id=MSG_IDS,
                             increment=True
                         ))
                         try:
-                            client(SendReactionRequest(
-                                peer=response_json["return"],
+                            await client(SendReactionRequest(
+                                peer=response_json.get("return", ""),
                                 msg_id=messages[0].id,
                                 big=True,
                                 add_to_recent=True,
@@ -149,35 +152,35 @@ async def background_task(phonex, bot_username, sudo):
                                     emoticon='👍'
                                 )]
                             ))
-                        except:
-                            print("error")
+                        except Exception as e:
+                            print(f"Error: {str(e)}")
                     except Exception as e:
-                        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
                             "text": f"- خطآ : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
-                        sleep(100)
+                        await asyncio.sleep(100)
                 response = requests.request(
-                    "GET", f"https://bot.keko.dev/api/?token={echo_token}&done="+response_json["return"])
+                    "GET", f"https://bot.keko.dev/api/?token={echo_token}&done="+response_json.get("return", ""))
                 response_json = response.json()
-                if (response_json["ok"] == False):
-                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                if not response_json.get("ok", False):
+                    await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
-                        "text": f"- "+response_json["msg"]+f" \n\n- {phonex}"
+                        "text": f"- "+response_json.get("msg", "")+f" \n\n- {phonex}"
                     })
                 else:
-                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                    await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
-                        "text": f"- اصبح عدد نقاطك "+str(response_json["c"])+f" \n\n- {phonex}"
+                        "text": f"- اصبح عدد نقاطك "+str(response_json.get("c", ""))+f" \n\n- {phonex}"
                     })
-                sleep(30)
+                await asyncio.sleep(30)
         else:
-            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+            await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                 "chat_id": sudo,
-                "text": f"- "+response_json["msg"]+f" \n\n- {phonex}"
+                "text": f"- "+response_json.get("msg", "")+f" \n\n- {phonex}"
             })
         await client.disconnect()
-        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"- تم ايقاف عمل الرقم : {phonex}"
         })
@@ -204,6 +207,7 @@ def stop_background_task(phone, chat_id):
         process = running_processes[str(chat_id)][phone]
         process.terminate()
         del running_processes[str(chat_id)][phone]
+
 
 
 logging.basicConfig(
