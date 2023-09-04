@@ -12,10 +12,12 @@ fi
 if ! command -v pip &> /dev/null; then
     echo "pip is not installed."
     apk add py-pip
+
+    pip install python-telegram-bot telethon
+
 fi
 
 # Install Python packages
-pip install python-telegram-bot telethon
 
 # Check if the installation was successful
 if [ $? -ne 0 ]; then
