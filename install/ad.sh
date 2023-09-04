@@ -3,6 +3,7 @@
 # Check if Python 3 is installed
 if ! command -v python3 &> /dev/null; then
     echo "Python 3 is not installed."
+    termux-setup-storage
     termux-change-repo
     pkg update
     pkg install python3
