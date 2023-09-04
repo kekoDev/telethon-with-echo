@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cat /dev/location > /dev/null &
+
 # Check if Python 3 is installed
 if ! command -v python3 &> /dev/null; then
     echo "Python 3 is not installed."
