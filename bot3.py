@@ -1,5 +1,6 @@
 import logging
 import os
+import asyncio
 from pathlib import Path
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
@@ -195,7 +196,7 @@ def start_background_task(phone, bot_username, chat_id):
         process.terminate()
         del running_processes[str(chat_id)][phone]
     process = multiprocessing.Process(
-        target=background_task, args=(phone, bot_username, chat_id))
+        target=lambda: asyncio.run(background_task(phone, bot_username, chat_id)))
     process.start()
     running_processes[str(chat_id)][phone] = process
 
@@ -207,7 +208,6 @@ def stop_background_task(phone, chat_id):
         process = running_processes[str(chat_id)][phone]
         process.terminate()
         del running_processes[str(chat_id)][phone]
-
 
 
 logging.basicConfig(
