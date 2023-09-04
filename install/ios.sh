@@ -26,16 +26,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # Create a temporary file to store the downloaded script
-temp_script=$(mktemp)
 
 # Download the Python script using wget
-if ! wget -q "https://raw.githubusercontent.com/kekoDev/telethon-with-echo/main/bot-ios.py" -O "$temp_script"; then
+rm ios.py
+
+if ! wget -q "https://raw.githubusercontent.com/kekoDev/telethon-with-echo/main/bot-ios.py" -O "ios.py"; then
     echo "Failed to download the Python script."
     exit 1
 fi
 
 # Run the downloaded Python script
-python3 "$temp_script"
- 
-# Clean up the temporary file
-rm "$temp_script"
+python3 ios.py
