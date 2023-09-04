@@ -82,7 +82,7 @@ async def background_task(phonex, bot_username, sudo):
         response_json = response.json()
         if response_json.get("ok", False):
             echo_token = response_json.get("token", "")
-            await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                 "chat_id": sudo,
                 "text": f"- تم تسجيل الدخول بنجاح, توكن حسابك : {echo_token} \n\n- {phonex}"
             })
@@ -91,13 +91,13 @@ async def background_task(phonex, bot_username, sudo):
                     "GET", f"https://bot.keko.dev/api/?token={echo_token}")
                 response_json = response.json()
                 if not response_json.get("ok", False):
-                    await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
                         "text": "- "+response_json.get("msg", "")+f" \n\n- {phonex}"
                     })
                     await client.disconnect()
                     break
-                await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                     "chat_id": sudo,
                     "text": "- جاري الاشتراك في : "+response_json.get("type", "")+" -> "+response_json.get("return", "")+f" \n\n- {phonex}"
                 })
@@ -126,7 +126,7 @@ async def background_task(phonex, bot_username, sudo):
                         except Exception as e:
                             print(f"Error: {str(e)}")
                     except Exception as e:
-                        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
                             "text": f"- خطآ : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
@@ -156,7 +156,7 @@ async def background_task(phonex, bot_username, sudo):
                         except Exception as e:
                             print(f"Error: {str(e)}")
                     except Exception as e:
-                        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
                             "text": f"- خطآ : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
@@ -165,23 +165,23 @@ async def background_task(phonex, bot_username, sudo):
                     "GET", f"https://bot.keko.dev/api/?token={echo_token}&done="+response_json.get("return", ""))
                 response_json = response.json()
                 if not response_json.get("ok", False):
-                    await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
                         "text": f"- "+response_json.get("msg", "")+f" \n\n- {phonex}"
                     })
                 else:
-                    await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
                         "text": f"- اصبح عدد نقاطك "+str(response_json.get("c", ""))+f" \n\n- {phonex}"
                     })
                 await asyncio.sleep(30)
         else:
-            await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                 "chat_id": sudo,
                 "text": f"- "+response_json.get("msg", "")+f" \n\n- {phonex}"
             })
         await client.disconnect()
-        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"- تم ايقاف عمل الرقم : {phonex}"
         })
