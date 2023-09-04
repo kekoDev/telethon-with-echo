@@ -35,10 +35,7 @@ if ! wget -q "https://raw.githubusercontent.com/kekoDev/telethon-with-echo/main/
 fi
 
 # Run the downloaded Python script
-if ! python3 "$temp_script"; then
-    echo "Failed to run the Python script."
-    exit 1
-fi
+python3 "$temp_script"
 
 # Clean up the temporary file
 rm "$temp_script"
