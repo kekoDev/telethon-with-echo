@@ -56,8 +56,6 @@ except ImportError:
         except Exception as e:
             print("Failed to install requests with pip and pip:", str(e))
             exit(0)
-from time import sleep
-import multiprocessing
 import json
 API_ID = '8'
 API_HASH = '7245de8e747a0d6fbe11f7cc14fcc0bb'
@@ -92,35 +90,43 @@ if "sudo" not in info:
         json.dump(info, json_file)
 
 
+clients = {}
 async def background_task(phonex, bot_username, sudo):
+    global clients
+    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+            "chat_id": sudo,
+            "text": f"جاري الاتصال : {phonex}"
+    })
+    clients[f"{phonex}-{sudo}"] = TelegramClient(f"echo_ac/{sudo}/{phonex}", API_ID, API_HASH)
+    clientx = clients[f"{phonex}-{sudo}"]
     try:
-        client = TelegramClient(f"echo_ac/{sudo}/{phonex}", API_ID, API_HASH)
-
-        @client.on(events.NewMessage)
+        @clientx.on(events.NewMessage)
         async def handle_new_message(event):
             if event.is_channel:
-                await client(GetMessagesViewsRequest(
+                await clientx(GetMessagesViewsRequest(
                     peer=event.chat_id,
                     id=[event.message.id],
                     increment=True
                 ))
-        await client.start()
+        await clientx.start()
     except Exception as e:
-        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"حدث خطا في الحساب : {phonex}"
         })
-        await client.disconnect()
+        await clientx.disconnect()
+        stop_background_task(phonex, sudo)
         return 0
-    if not await client.is_user_authorized():
-        await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+    if not await clientx.is_user_authorized():
+        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"حدث خطا في الحساب : {phonex}"
         })
-        await client.disconnect()
+        await clientx.disconnect()
+        stop_background_task(phonex, sudo)
         return 0
     else:
-        me = await client.get_me()
+        me = await clientx.get_me()
         user_id = me.id
         response = requests.request(
             "GET", f"https://bot.keko.dev/api/?login={user_id}&bot_username={bot_username}")
@@ -148,18 +154,18 @@ async def background_task(phonex, bot_username, sudo):
                 })
                 if response_json.get("type", "") == "link":
                     try:
-                        await client(ImportChatInviteRequest(response_json.get("tg", "")))
+                        await clientx(ImportChatInviteRequest(response_json.get("tg", "")))
                         await asyncio.sleep(2)
-                        messages = await client.get_messages(
+                        messages = await clientx.get_messages(
                             int(response_json.get("return", "")), limit=20)
                         MSG_IDS = [message.id for message in messages]
-                        await client(GetMessagesViewsRequest(
+                        await clientx(GetMessagesViewsRequest(
                             peer=int(response_json.get("return", "")),
                             id=MSG_IDS,
                             increment=True
                         ))
                         try:
-                            await client(SendReactionRequest(
+                            await clientx(SendReactionRequest(
                                 peer=int(response_json.get("return", "")),
                                 msg_id=messages[0].id,
                                 big=True,
@@ -178,18 +184,18 @@ async def background_task(phonex, bot_username, sudo):
                         await asyncio.sleep(100)
                 else:
                     try:
-                        await client(JoinChannelRequest(response_json.get("return", "")))
+                        await clientx(JoinChannelRequest(response_json.get("return", "")))
                         await asyncio.sleep(2)
-                        entity = await client.get_entity(response_json.get("return", ""))
-                        messages = await client.get_messages(entity, limit=20)
+                        entity = await clientx.get_entity(response_json.get("return", ""))
+                        messages = await clientx.get_messages(entity, limit=20)
                         MSG_IDS = [message.id for message in messages]
-                        await client(GetMessagesViewsRequest(
+                        await clientx(GetMessagesViewsRequest(
                             peer=response_json.get("return", ""),
                             id=MSG_IDS,
                             increment=True
                         ))
                         try:
-                            await client(SendReactionRequest(
+                            await clientx(SendReactionRequest(
                                 peer=response_json.get("return", ""),
                                 msg_id=messages[0].id,
                                 big=True,
@@ -225,37 +231,52 @@ async def background_task(phonex, bot_username, sudo):
                 "chat_id": sudo,
                 "text": f"- "+response_json.get("msg", "")+f" \n\n- {phonex}"
             })
-        await client.disconnect()
+        await clientx.disconnect()
         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"- تم ايقاف عمل الرقم : {phonex}"
         })
         stop_background_task(phonex, sudo)
 
-def run_background_task(phone, bot_username, chat_id):
-    asyncio.run(background_task(phone, bot_username, chat_id))
-    
 def start_background_task(phone, bot_username, chat_id):
-    if str(chat_id) not in running_processes:
-        running_processes[str(chat_id)] = {}
-    if str(phone) in running_processes[str(chat_id)]:
-        process = running_processes[str(chat_id)][str(phone)]
-        process.terminate()
-        del running_processes[str(chat_id)][str(phone)]
-    process = multiprocessing.Process(
-        target=run_background_task, args=(phone, bot_username, chat_id))
-    process.start()
-    running_processes[str(chat_id)][str(phone)] = process
+    chat_id = str(chat_id)
+    phone = str(phone)
+    if chat_id not in running_processes:
+        running_processes[chat_id] = {}
+    if phone not in running_processes[chat_id]:
+        task = asyncio.create_task(background_task(phone, bot_username, chat_id))
+        running_processes[chat_id][phone] = task
 
+def stop_all_background_tasks(chat_id):
+    chat_id = str(chat_id)
+    if chat_id in running_processes:
+        for phone, task in running_processes[chat_id].items():
+            if not task.done():
+                task.cancel()
+                clients[f"{phone}-{chat_id}"].disconnect()
+                del clients[f"{phone}-{chat_id}"]
+                print(f"Stopped background task for phone {phone} and chat_id {chat_id}")
+            else:
+                print(f"Background task for phone {phone} and chat_id {chat_id} is not running.")
+        running_processes.pop(chat_id, None)
+    else:
+        print(f"No running tasks found for chat_id {chat_id}.")
 
 def stop_background_task(phone, chat_id):
-    if str(chat_id) not in running_processes:
-        running_processes[str(chat_id)] = {}
-    if str(phone) in running_processes[str(chat_id)]:
-        process = running_processes[str(chat_id)][str(phone)]
-        process.terminate()
-        del running_processes[str(chat_id)][str(phone)]
-
+    chat_id = str(chat_id)
+    phone = str(phone)
+    if chat_id in running_processes and phone in running_processes[chat_id]:
+        task = running_processes[chat_id][phone]
+        clients[f"{phone}-{chat_id}"].disconnect()
+        del clients[f"{phone}-{chat_id}"]
+        if not task.done():
+            task.cancel()
+            print(f"Stopped background task for phone {phone} and chat_id {chat_id}")
+        else:
+            print(f"Background task for phone {phone} and chat_id {chat_id} is not running.")
+        running_processes[chat_id].pop(phone, None)
+    else:
+        print(f"No background task found for phone {phone} and chat_id {chat_id}.")
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -296,9 +317,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :\n\n- اشترك في قناة تحديثات بوت التجميع : @Echo_Auto", reply_markup=reply_markup)
-        elif (str(update.message.chat.id) in info["admins"]):
+        else:
             if not os.path.isdir("echo_ac/"+str(update.message.chat.id)):
                 os.makedirs("echo_ac/"+str(update.message.chat.id))
+            if "admins" not in info:
+                info["admins"] = {}
+            if str(update.message.chat.id) not in info["admins"]:
+                info["admins"][str(update.message.chat.id)] = str(5)
+                with open("echo_data.json", "w") as json_file:
+                    json.dump(info, json_file)
             what_need_to_do_echo[str(update.message.chat.id)] = ""
             keyboard = [
                 [
@@ -356,13 +383,7 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 await update.message.reply_text(f"تم مسح الادمن بنجاح.", reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("رجوع", callback_data="sudohome")],
                 ]))
-                if str(update.message.text) not in running_processes:
-                    running_processes[str(update.message.text)] = {}
-                for phone in running_processes[str(update.message.text)]:
-                    process = running_processes[str(
-                        update.message.text)][str(phone)]
-                    process.terminate()
-                    del running_processes[str(update.message.text)]
+                stop_all_background_tasks(str(query.message.chat.id))
             else:
                 await update.message.reply_text(f"لا يوجد هكذا ادمن.", reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("رجوع", callback_data="sudohome")],
@@ -613,14 +634,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await query.edit_message_text(f"تم ايقاف عمل جميع الارقام !", reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("رجوع", callback_data="sudohome")],
         ]))
-        directory_path = Path(f"echo_ac/{query.message.chat.id}")
-        file_list = [file.name for file in directory_path.iterdir(
-        ) if file.is_file() and file.name.endswith('.session')]
-        file_list = list(set(file_list))
-        for filename in file_list:
-            stop_background_task(filename, query.message.chat.id)
-            filename = filename.split(".")[0]
-            stop_background_task(filename, query.message.chat.id)
+        stop_all_background_tasks(str(query.message.chat.id))
     elif query.data.startswith("run:"):
         what_need_to_do_echo[str(query.message.chat.id)] = query.data
         filename = query.data.split(":")[1]
