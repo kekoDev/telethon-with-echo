@@ -232,27 +232,29 @@ async def background_task(phonex, bot_username, sudo):
         })
         stop_background_task(phonex, sudo)
 
-
+def run_background_task(phone, bot_username, chat_id):
+    asyncio.run(background_task(phone, bot_username, chat_id))
+    
 def start_background_task(phone, bot_username, chat_id):
     if str(chat_id) not in running_processes:
         running_processes[str(chat_id)] = {}
-    if phone in running_processes[str(chat_id)]:
-        process = running_processes[str(chat_id)][phone]
+    if str(phone) in running_processes[str(chat_id)]:
+        process = running_processes[str(chat_id)][str(phone)]
         process.terminate()
-        del running_processes[str(chat_id)][phone]
+        del running_processes[str(chat_id)][str(phone)]
     process = multiprocessing.Process(
-        target=lambda: asyncio.run(background_task(phone, bot_username, chat_id)))
+        target=run_background_task, args=(phone, bot_username, chat_id))
     process.start()
-    running_processes[str(chat_id)][phone] = process
+    running_processes[str(chat_id)][str(phone)] = process
 
 
 def stop_background_task(phone, chat_id):
     if str(chat_id) not in running_processes:
         running_processes[str(chat_id)] = {}
-    if phone in running_processes[str(chat_id)]:
-        process = running_processes[str(chat_id)][phone]
+    if str(phone) in running_processes[str(chat_id)]:
+        process = running_processes[str(chat_id)][str(phone)]
         process.terminate()
-        del running_processes[str(chat_id)][phone]
+        del running_processes[str(chat_id)][str(phone)]
 
 
 logging.basicConfig(
@@ -358,7 +360,7 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     running_processes[str(update.message.text)] = {}
                 for phone in running_processes[str(update.message.text)]:
                     process = running_processes[str(
-                        update.message.text)][phone]
+                        update.message.text)][str(phone)]
                     process.terminate()
                     del running_processes[str(update.message.text)]
             else:
@@ -428,9 +430,8 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             file_list = list(set(file_list))
             for filename in file_list:
                 filename = filename.split(".")[0]
-                if filename not in running_processes[str(update.message.chat.id)]:
-                    start_background_task(
-                        filename, update.message.text, update.message.chat.id)
+                start_background_task(
+                    str(filename), str(update.message.text), str(update.message.chat.id))
             what_need_to_do_echo[str(update.message.chat.id)] = ""
         elif (what_need_to_do_echo[str(update.message.chat.id)].startswith("run:")):
             filename = what_need_to_do_echo[str(
@@ -583,7 +584,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             running_processes[str(query.message.chat.id)] = {}
         for filename in file_list:
             filename = filename.split(".")[0]
-            if filename in running_processes[str(query.message.chat.id)]:
+            if str(filename) in running_processes[str(query.message.chat.id)]:
                 button = InlineKeyboardButton(
                     f"{filename}", callback_data=f"stop:{filename}")
                 button2 = InlineKeyboardButton(
