@@ -1,15 +1,61 @@
 import logging
 import os
 import asyncio
+import subprocess
 from pathlib import Path
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+try:
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+except ImportError:
+    print("python-telegram-bot is not installed. Installing it now...")
+    try:
+        subprocess.check_call(["pip3", "install", "python-telegram-bot"])
+        print("python-telegram-bot has been successfully installed.")
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+    except Exception as e:
+        try:
+            subprocess.check_call(["pip", "install", "python-telegram-bot"])
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+            print("python-telegram-bot has been successfully installed using pip3.")
+        except Exception as e:
+            print("Failed to install python-telegram-bot with pip and pip3:", str(e))
+            exit(0)
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
-from telethon import TelegramClient, sync, functions, errors, events, types
+try:
+    from telethon import TelegramClient, sync, functions, errors, events, types
+except ImportError:
+    print("telethon is not installed. Installing it now...")
+    try:
+        subprocess.check_call(["pip3", "install", "telethon"])
+        print("telethon has been successfully installed.")
+        from telethon import TelegramClient, sync, functions, errors, events, types
+    except Exception as e:
+        try:
+            subprocess.check_call(["pip", "install", "telethon"])
+            from telethon import TelegramClient, sync, functions, errors, events, types
+            print("telethon has been successfully installed using pip.")
+        except Exception as e:
+            print("Failed to install telethon with pip and pip:", str(e))
+            exit(0)
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.functions.messages import GetMessagesViewsRequest
 from telethon.tl.functions.messages import SendReactionRequest
-import requests
+try:
+    import requests
+except ImportError:
+    print("requests is not installed. Installing it now...")
+    try:
+        subprocess.check_call(["pip3", "install", "requests"])
+        print("requests has been successfully installed.")
+        import requests
+    except Exception as e:
+        try:
+            subprocess.check_call(["pip", "install", "requests"])
+            import requests
+            print("requests has been successfully installed using pip.")
+        except Exception as e:
+            print("Failed to install requests with pip and pip:", str(e))
+            exit(0)
 from time import sleep
 import multiprocessing
 import json
@@ -60,7 +106,6 @@ async def background_task(phonex, bot_username, sudo):
                 ))
         await client.start()
     except Exception as e:
-        print(f"Error: {str(e)}")
         await requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"حدث خطا في الحساب : {phonex}"
@@ -93,10 +138,10 @@ async def background_task(phonex, bot_username, sudo):
                 if not response_json.get("ok", False):
                     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
-                        "text": "- "+response_json.get("msg", "")+f" \n\n- {phonex}"
+                        "text": "- "+response_json.get("msg", "")+f" \n\n- {phonex}\n\n- تم التبطيء لمده 100 ثانيه"
                     })
-                    await client.disconnect()
-                    break
+                    await asyncio.sleep(100)
+                    continue
                 requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                     "chat_id": sudo,
                     "text": "- جاري الاشتراك في : "+response_json.get("type", "")+" -> "+response_json.get("return", "")+f" \n\n- {phonex}"
@@ -372,6 +417,20 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             info["admins"][str(admin)] = str(update.message.text)
             with open("echo_data.json", "w") as json_file:
                 json.dump(info, json_file)
+
+        elif (what_need_to_do_echo[str(update.message.chat.id)] == "runall"):
+            await update.message.reply_text(f"تم بدء العمل - جميع الارقام !", reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("رجوع", callback_data="sudohome")],
+            ]))
+            directory_path = Path(f"echo_ac/{update.message.chat.id}")
+            file_list = [file.name for file in directory_path.iterdir(
+            ) if file.is_file() and file.name.endswith('.session')]
+            file_list = list(set(file_list))
+            for filename in file_list:
+                if filename not in running_processes[str(update.message.chat.id)]:
+                    start_background_task(
+                        filename, update.message.text, update.message.chat.id)
+            what_need_to_do_echo[str(update.message.chat.id)] = ""
         elif (what_need_to_do_echo[str(update.message.chat.id)].startswith("run:")):
             filename = what_need_to_do_echo[str(
                 update.message.chat.id)].split(":")[1]
@@ -534,10 +593,30 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 button2 = InlineKeyboardButton(
                     f"❌ | اضغط للتشغيل", callback_data=f"run:{filename}")
             keyboard.append([button, button2])
+        if (keyboard):
+            keyboard.append([InlineKeyboardButton(
+                "تشغيل الكل", callback_data="runall")])
+            keyboard.append([InlineKeyboardButton(
+                "ايقاف الكل", callback_data="stopall")])
         keyboard.append([InlineKeyboardButton(
             "رجوع", callback_data="sudohome")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text("الحسابات الخاصه بك : \n\n- ✅ = يعمل \n- ❌ = متوقف ", reply_markup=reply_markup)
+    elif query.data == "runall":
+        what_need_to_do_echo[str(query.message.chat.id)] = query.data
+        await query.edit_message_text(f"ارسل معرف البوت الذي تريد لجميع الحسابات التجميع منه : ", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("رجوع", callback_data="sudohome")],
+        ]))
+    elif query.data == "stopall":
+        await query.edit_message_text(f"تم ايقاف عمل جميع الارقام !", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("رجوع", callback_data="sudohome")],
+        ]))
+        directory_path = Path(f"echo_ac/{query.message.chat.id}")
+        file_list = [file.name for file in directory_path.iterdir(
+        ) if file.is_file() and file.name.endswith('.session')]
+        file_list = list(set(file_list))
+        for filename in file_list:
+            stop_background_task(filename, query.message.chat.id)
     elif query.data.startswith("run:"):
         what_need_to_do_echo[str(query.message.chat.id)] = query.data
         filename = query.data.split(":")[1]
