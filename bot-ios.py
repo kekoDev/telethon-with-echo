@@ -427,6 +427,7 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             ) if file.is_file() and file.name.endswith('.session')]
             file_list = list(set(file_list))
             for filename in file_list:
+                filename = filename.split(".")[0]
                 if filename not in running_processes[str(update.message.chat.id)]:
                     start_background_task(
                         filename, update.message.text, update.message.chat.id)
@@ -616,6 +617,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         ) if file.is_file() and file.name.endswith('.session')]
         file_list = list(set(file_list))
         for filename in file_list:
+            stop_background_task(filename, query.message.chat.id)
+            filename = filename.split(".")[0]
             stop_background_task(filename, query.message.chat.id)
     elif query.data.startswith("run:"):
         what_need_to_do_echo[str(query.message.chat.id)] = query.data
