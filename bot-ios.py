@@ -339,16 +339,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 ],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :\n\n- اشترك في قناة تحديثات بوت التجميع : @Echo_Auto", reply_markup=reply_markup)
+            await update.message.reply_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :\n\n- اشترك في قناة تحديثات بوت التجميع : @Echo_Auto\n\n- سرعة التجميع : " + str(info["sleeptime"]), reply_markup=reply_markup)
         elif str(update.message.chat.id) in info["admins"]:
-            if not os.path.isdir("echo_ac/"+str(update.message.chat.id)):
-                os.makedirs("echo_ac/"+str(update.message.chat.id))
-            if "admins" not in info:
-                info["admins"] = {}
-            if str(update.message.chat.id) not in info["admins"]:
-                info["admins"][str(update.message.chat.id)] = str(5)
-                with open("echo_data.json", "w") as json_file:
-                    json.dump(info, json_file)
             what_need_to_do_echo[str(update.message.chat.id)] = ""
             keyboard = [
                 [
@@ -361,7 +353,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 ],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await update.message.reply_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :", reply_markup=reply_markup)
+            await update.message.reply_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :\n\n- سرعة التجميع : " + str(info["sleeptime"]), reply_markup=reply_markup)
 
 
 async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -400,6 +392,8 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await update.message.reply_text(f"تم الحفظ بنجاح.", reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("رجوع", callback_data="sudohome")],
             ]))
+            with open("echo_data.json", "w") as json_file:
+                json.dump(info, json_file)
             what_need_to_do_echo[str(update.message.chat.id)] = ""
         elif (what_need_to_do_echo[str(update.message.chat.id)] == "deladminecho"):
             if os.path.isdir("echo_ac/"+str(update.message.text)):
@@ -562,7 +556,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 ],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :", reply_markup=reply_markup)
+            await query.edit_message_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :\n\n- سرعة التجميع : " + str(info["sleeptime"]), reply_markup=reply_markup)
         elif (str(query.message.chat.id) in info["admins"]):
             keyboard = [
                 [
@@ -575,7 +569,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 ],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :", reply_markup=reply_markup)
+            await query.edit_message_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :\n\n- سرعة التجميع : " + str(info["sleeptime"]), reply_markup=reply_markup)
     elif (query.data == "sleeptime"):
         await query.edit_message_text(f"يرجى إرسال العدد الذي ترغب فيه من الثواني لانتظار البوت للاشتراك في القناة التالية :", reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("رجوع", callback_data="myadminsecho")],
