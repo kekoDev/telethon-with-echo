@@ -3,6 +3,17 @@ import os
 import asyncio
 import subprocess
 from pathlib import Path
+def starts_with_plus_and_number(text):
+    text = str(text)
+    # Check if the string is not empty
+    if len(text) > 0:
+        # Check if the first character is '+'
+        if text[0] == '+':
+            # Check if the remaining characters are all numbers
+            if text[1:].isdigit():
+                return True
+    return False
+
 try:
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 except ImportError:
@@ -361,6 +372,8 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return 0
     if (update.message.text and (str(update.message.chat.id) in what_need_to_do_echo)):
         if (what_need_to_do_echo[str(update.message.chat.id)] == "addecho"):
+            if (not starts_with_plus_and_number(update.message.chat.id)):
+                return
             client = TelegramClient(
                 f"echo_ac/{update.message.chat.id}/{update.message.text}", API_ID, API_HASH)
             try:
