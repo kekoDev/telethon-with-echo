@@ -36,6 +36,7 @@ except ImportError:
         except Exception as e:
             print("Failed to install telethon with pip and pip:", str(e))
             exit(0)
+from telethon.tl.functions.account import UpdateStatusRequest, UpdateProfileRequest
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.functions.messages import GetMessagesViewsRequest
@@ -93,6 +94,9 @@ if "sudo" not in info:
 clients = {}
 async def background_task(phonex, bot_username, sudo):
     global clients
+    if clients.get(f"{phonex}-{sudo}") is not None:
+        clientxx = clients[f"{phonex}-{sudo}"]
+        await clientxx.disconnect()
     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"جاري الاتصال : {phonex}"
@@ -109,6 +113,7 @@ async def background_task(phonex, bot_username, sudo):
                     increment=True
                 ))
         await clientx.start()
+        await clientx(UpdateStatusRequest(offline=False))
     except Exception as e:
         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
@@ -146,7 +151,7 @@ async def background_task(phonex, bot_username, sudo):
                         "chat_id": sudo,
                         "text": "- "+response_json.get("msg", "")+f" \n\n- {phonex}\n\n- تم التبطيء لمده 100 ثانيه"
                     })
-                    await asyncio.sleep(100)
+                    await asyncio.sleep(200)
                     continue
                 requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                     "chat_id": sudo,
@@ -176,12 +181,13 @@ async def background_task(phonex, bot_username, sudo):
                             ))
                         except Exception as e:
                             print(f"Error: {str(e)}")
-                    except Exception as e:
+                    except errors.FloodWaitError as e:
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- خطآ : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
+                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
-                        await asyncio.sleep(100)
+                        await asyncio.sleep(e.seconds+10)
+                        continue
                 else:
                     try:
                         await clientx(JoinChannelRequest(response_json.get("return", "")))
@@ -206,12 +212,13 @@ async def background_task(phonex, bot_username, sudo):
                             ))
                         except Exception as e:
                             print(f"Error: {str(e)}")
-                    except Exception as e:
+                    except errors.FloodWaitError as e:
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- خطآ : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
+                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
-                        await asyncio.sleep(100)
+                        await asyncio.sleep(e.seconds+10)
+                        continue
                 response = requests.request(
                     "GET", f"https://bot.keko.dev/api/?token={echo_token}&done="+response_json.get("return", ""))
                 response_json = response.json()
@@ -223,9 +230,9 @@ async def background_task(phonex, bot_username, sudo):
                 else:
                     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
-                        "text": f"- اصبح عدد نقاطك "+str(response_json.get("c", ""))+f" \n\n- {phonex}"
+                        "text": f"- اصبح عدد نقاطك "+str(response_json.get("c", ""))+f" \n\n- {phonex}\n\n- انتضار : "+str(info["sleeptime"])
                     })
-                await asyncio.sleep(30)
+                await asyncio.sleep(int(info["sleeptime"]))
         else:
             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                 "chat_id": sudo,
@@ -286,7 +293,8 @@ logger = logging.getLogger(__name__)
 if not os.path.isdir("echo_ac"):
     os.makedirs("echo_ac")
 what_need_to_do_echo = {}
-
+if "sleeptime" not in info:
+    info["sleeptime"] = 35
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global what_need_to_do_echo
@@ -313,6 +321,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 [
                     InlineKeyboardButton(
                         "الادمنيه", callback_data="myadminsecho"),
+                ],
+                [
+                    InlineKeyboardButton(
+                        "سرعة التجميع", callback_data="sleeptime"),
                 ],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -370,6 +382,12 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     [InlineKeyboardButton("رجوع", callback_data="sudohome")],
                 ]))
             await client.disconnect()
+        elif (what_need_to_do_echo[str(update.message.chat.id)] == "sleeptime"):
+            info["sleeptime"] = int(update.message.text)
+            await update.message.reply_text(f"تم الحفظ بنجاح.", reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("رجوع", callback_data="sudohome")],
+            ]))
+            what_need_to_do_echo[str(update.message.chat.id)] = ""
         elif (what_need_to_do_echo[str(update.message.chat.id)] == "deladminecho"):
             if os.path.isdir("echo_ac/"+str(update.message.text)):
                 os.rmdir("echo_ac/"+str(update.message.text))
@@ -383,7 +401,7 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 await update.message.reply_text(f"تم مسح الادمن بنجاح.", reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("رجوع", callback_data="sudohome")],
                 ]))
-                stop_all_background_tasks(str(query.message.chat.id))
+                stop_all_background_tasks(str(update.message.chat.id))
             else:
                 await update.message.reply_text(f"لا يوجد هكذا ادمن.", reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("رجوع", callback_data="sudohome")],
@@ -525,6 +543,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     InlineKeyboardButton(
                         "الادمنيه", callback_data="myadminsecho"),
                 ],
+                [
+                    InlineKeyboardButton(
+                        "سرعة التجميع", callback_data="sleeptime"),
+                ],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :", reply_markup=reply_markup)
@@ -541,6 +563,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :", reply_markup=reply_markup)
+    elif (query.data == "sleeptime"):
+        await query.edit_message_text(f"يرجى إرسال العدد الذي ترغب فيه من الثواني لانتظار البوت للاشتراك في القناة التالية :", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("رجوع", callback_data="myadminsecho")],
+        ]))
+        what_need_to_do_echo[str(query.message.chat.id)] = query.data
     elif (query.data == "myadminsecho"):
         if "admins" not in info:
             info["admins"] = {}
