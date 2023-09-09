@@ -3,16 +3,6 @@ import os
 import asyncio
 import subprocess
 from pathlib import Path
-def starts_with_plus_and_number(text):
-    text = str(text)
-    # Check if the string is not empty
-    if len(text) > 0:
-        # Check if the first character is '+'
-        if text[0] == '+':
-            # Check if the remaining characters are all numbers
-            if text[1:].isdigit():
-                return True
-    return False
 
 try:
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -105,9 +95,6 @@ if "sudo" not in info:
 clients = {}
 async def background_task(phonex, bot_username, sudo):
     global clients
-    if clients.get(f"{phonex}-{sudo}") is not None:
-        clientxx = clients[f"{phonex}-{sudo}"]
-        await clientxx.disconnect()
     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"جاري الاتصال : {phonex}"
@@ -195,10 +182,16 @@ async def background_task(phonex, bot_username, sudo):
                     except errors.FloodWaitError as e:
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n{str(e)}\n\n- {phonex}"
+                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n- {phonex}"
                         })
-                        await asyncio.sleep(e.seconds+10)
+                        await asyncio.sleep(int(e.seconds)+10)
                         continue
+                    except Exception as e:
+                        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                            "chat_id": sudo,
+                            "text": f"- خطا : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
+                        })
+                        await asyncio.sleep(100)
                 else:
                     try:
                         await clientx(JoinChannelRequest(response_json.get("return", "")))
@@ -226,10 +219,16 @@ async def background_task(phonex, bot_username, sudo):
                     except errors.FloodWaitError as e:
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n{str(e)}\n\n- {phonex}"
+                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n- {phonex}"
                         })
-                        await asyncio.sleep(e.seconds+10)
+                        await asyncio.sleep(int(e.seconds)+10)
                         continue
+                    except Exception as e:
+                        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                            "chat_id": sudo,
+                            "text": f"- خطا : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
+                        })
+                        await asyncio.sleep(100)
                 response = requests.request(
                     "GET", f"https://bot.keko.dev/api/?token={echo_token}&done="+response_json.get("return", ""))
                 response_json = response.json()
@@ -259,6 +258,7 @@ async def background_task(phonex, bot_username, sudo):
 def start_background_task(phone, bot_username, chat_id):
     chat_id = str(chat_id)
     phone = str(phone)
+    stop_background_task(phone, chat_id)
     if chat_id not in running_processes:
         running_processes[chat_id] = {}
     if phone not in running_processes[chat_id]:
@@ -309,7 +309,7 @@ if "sleeptime" not in info:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global what_need_to_do_echo
-    if (update.message.chat.type == "private"):
+    if update.message and update.message.chat.type == "private":
         if (str(update.message.chat.id) == str(info["sudo"])):
             if not os.path.isdir("echo_ac/"+str(update.message.chat.id)):
                 os.makedirs("echo_ac/"+str(update.message.chat.id))
@@ -355,16 +355,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text("مرحبا بك في سورس التجميع الخاص ببوتات ايكو :\n\n- سرعة التجميع : " + str(info["sleeptime"]), reply_markup=reply_markup)
 
+def contact_validate(text):
+    text = str(text)  
+    if len(text) > 0:
+        if text[0] == '+':
+            if text[1:].isdigit():
+                return True
+    return False
+
 
 async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global what_need_to_do_echo
-    if (update.message.chat.type != "private"):
+    if not update.message or update.message.chat.type != "private":
         return 0
     if (str(update.message.chat.id) != str(info["sudo"]) and str(update.message.chat.id) not in info["admins"]):
         return 0
     if (update.message.text and (str(update.message.chat.id) in what_need_to_do_echo)):
         if (what_need_to_do_echo[str(update.message.chat.id)] == "addecho"):
-            if (not starts_with_plus_and_number(update.message.chat.id)):
+            if (not contact_validate(update.message.text)):
+                await update.message.reply_text(f"ارسل رقم صحيح ", reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("رجوع", callback_data="sudohome")],
+                ]))
                 return
             client = TelegramClient(
                 f"echo_ac/{update.message.chat.id}/{update.message.text}", API_ID, API_HASH)
@@ -494,7 +505,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global what_need_to_do_echo
     query = update.callback_query
     await query.answer()
-    if (query.message.chat.type != "private"):
+    if not query.message or query.message.chat.type != "private":
         return 0
     if (str(query.message.chat.id) != str(info["sudo"]) and str(query.message.chat.id) not in info["admins"]):
         return 0
