@@ -110,17 +110,17 @@ async def background_task(phonex, bot_username, sudo):
                     id=[event.message.id],
                     increment=True
                 ))
-        await clientx.start()
+        await clientx.connect()
         await clientx(UpdateStatusRequest(offline=False))
+        if not await clientx.is_user_authorized():
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                "chat_id": sudo,
+                "text": f"الحساب غير مسجل بالبوت : {phonex}"
+            })
+            await clientx.disconnect()
+            stop_background_task(phonex, sudo)
+            return 0
     except Exception as e:
-        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
-            "chat_id": sudo,
-            "text": f"حدث خطا في الحساب : {phonex}"
-        })
-        await clientx.disconnect()
-        stop_background_task(phonex, sudo)
-        return 0
-    if not await clientx.is_user_authorized():
         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
             "chat_id": sudo,
             "text": f"حدث خطا في الحساب : {phonex}"
@@ -384,7 +384,6 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 what_need_to_do_echo[str(
                     update.message.chat.id)+":phone"] = update.message.text
                 eeecho = await client.send_code_request(update.message.text)
-                print(eeecho)
                 what_need_to_do_echo[str(
                     update.message.chat.id)+":phone_code_hash"] = eeecho.phone_code_hash
                 await update.message.reply_text(f"ارسل رمز تسجيل الدخول : ", reply_markup=InlineKeyboardMarkup([
