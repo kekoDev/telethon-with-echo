@@ -158,10 +158,7 @@ async def background_task(phonex, bot_username, sudo, send_to):
                 if (response_json.get("canleave", False)):
                     for chat in response_json["canleave"]: 
                         try:
-                            functions.messages.DeleteChatUserRequest(
-                                chat_id=chat,
-                                user_id='me'
-                            )
+                            await clientx.delete_dialog(chat)
                             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                                 "chat_id": sudo,
                                 "text": "- تم مغادرة : "+str(chat)+" -> بسبب انتهاء مده الاشتراك"+f" \n\n- {phonex}"
@@ -184,18 +181,18 @@ async def background_task(phonex, bot_username, sudo, send_to):
                             id=MSG_IDS,
                             increment=True
                         ))
-                        # try:
-                        #     await clientx(SendReactionRequest(
-                        #         peer=int(response_json.get("return", "")),
-                        #         msg_id=messages[0].id,
-                        #         big=True,
-                        #         add_to_recent=True,
-                        #         reaction=[types.ReactionEmoji(
-                        #             emoticon='👍'
-                        #         )]
-                        #     ))
-                        # except Exception as e:
-                        #     print(f"Error: {str(e)}")
+                        try:
+                            await clientx(SendReactionRequest(
+                                peer=int(response_json.get("return", "")),
+                                msg_id=messages[0].id,
+                                big=True,
+                                add_to_recent=True,
+                                reaction=[types.ReactionEmoji(
+                                    emoticon='👍'
+                                )]
+                            ))
+                        except Exception as e:
+                            print(f"Error: {str(e)}")
                     except errors.FloodWaitError as e:
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
@@ -221,18 +218,18 @@ async def background_task(phonex, bot_username, sudo, send_to):
                             id=MSG_IDS,
                             increment=True
                         ))
-                        # try:
-                        #     await clientx(SendReactionRequest(
-                        #         peer=response_json.get("return", ""),
-                        #         msg_id=messages[0].id,
-                        #         big=True,
-                        #         add_to_recent=True,
-                        #         reaction=[types.ReactionEmoji(
-                        #             emoticon='👍'
-                        #         )]
-                        #     ))
-                        # except Exception as e:
-                        #     print(f"Error: {str(e)}")
+                        try:
+                            await clientx(SendReactionRequest(
+                                peer=response_json.get("return", ""),
+                                msg_id=messages[0].id,
+                                big=True,
+                                add_to_recent=True,
+                                reaction=[types.ReactionEmoji(
+                                    emoticon='👍'
+                                )]
+                            ))
+                        except Exception as e:
+                            print(f"Error: {str(e)}")
                     except errors.FloodWaitError as e:
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
@@ -387,7 +384,19 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return 0
     if (str(update.message.chat.id) != str(info["sudo"]) and str(update.message.chat.id) not in info["admins"]):
         return 0
-    if (update.message.text and (str(update.message.chat.id) in what_need_to_do_echo)):
+    if update.message.text and update.message.text.startswith("/run "):
+        filename = update.message.text.split(" ")[1]
+        what_need_to_do_echo[str(update.message.chat.id)] = f"run:{filename}"
+        await update.message.reply_text(f"ارسل معرف البوت الذي تريد للحساب التجميع منه : \n\n- {filename}", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("رجوع", callback_data="sudohome")],
+        ]))
+    elif update.message.text and update.message.text.startswith("/stop "):
+        filename = update.message.text.split(" ")[1]
+        await update.message.reply_text(f"تم ايقاف عمل الرقم : {filename}", reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("رجوع", callback_data="sudohome")],
+        ]))
+        stop_background_task(filename, update.message.chat.id)
+    elif (update.message.text and (str(update.message.chat.id) in what_need_to_do_echo)):
         if (what_need_to_do_echo[str(update.message.chat.id)] == "addecho"):
             if (not contact_validate(update.message.text)):
                 await update.message.reply_text(f"ارسل رقم صحيح ", reply_markup=InlineKeyboardMarkup([
@@ -681,6 +690,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         keyboard = []
         if str(query.message.chat.id) not in running_processes:
             running_processes[str(query.message.chat.id)] = {}
+        keyboard.append([InlineKeyboardButton(
+            "تشغيل الكل", callback_data="runall"),InlineKeyboardButton(
+            "ايقاف الكل", callback_data="stopall")])
         for filename in file_list:
             filename = filename.split(".")[0]
             if str(filename) in running_processes[str(query.message.chat.id)]:
@@ -694,15 +706,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 button2 = InlineKeyboardButton(
                     f"❌ | اضغط للتشغيل", callback_data=f"run:{filename}")
             keyboard.append([button, button2])
-        if (keyboard):
-            keyboard.append([InlineKeyboardButton(
-                "تشغيل الكل", callback_data="runall")])
-            keyboard.append([InlineKeyboardButton(
-                "ايقاف الكل", callback_data="stopall")])
         keyboard.append([InlineKeyboardButton(
             "رجوع", callback_data="sudohome")])
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("الحسابات الخاصه بك : \n\n- ✅ = يعمل \n- ❌ = متوقف ", reply_markup=reply_markup)
+        await query.edit_message_text("الحسابات الخاصه بك : \n\n- ✅ = يعمل \n- ❌ = متوقف \n\nيمكنك تشغيل رقم من خلال امر :\n/run +9647712311233\n لليقاف : \n/stop +9647712311233", reply_markup=reply_markup)
     elif query.data == "runall":
         what_need_to_do_echo[str(query.message.chat.id)] = query.data
         await query.edit_message_text(f"ارسل معرف البوت الذي تريد لجميع الحسابات التجميع منه : ", reply_markup=InlineKeyboardMarkup([
