@@ -201,7 +201,19 @@ async def background_task(phonex, bot_username, sudo, send_to):
                             "chat_id": sudo,
                             "text": f"- تم حظر الرقم : انتظار {timeoutt} ثانيه \n\n- {phonex}"
                         })
-                        await asyncio.sleep(timeoutt)
+                        try:
+                            await clientx(UpdateStatusRequest(offline=True))
+                            await clientx.disconnect()
+                            await asyncio.sleep(timeoutt)
+                            await clientx.connect()
+                            await clientx(UpdateStatusRequest(offline=False))
+                        except Exception as e:
+                            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                                "chat_id": sudo,
+                                "text": f"حدث خطا في الحساب : {phonex}"
+                            })
+                            stop_background_task(phonex, sudo)
+                            return 0
                         continue
                     except Exception as e:
                         timeoutt = random.randint(200,400)
@@ -242,7 +254,19 @@ async def background_task(phonex, bot_username, sudo, send_to):
                             "chat_id": sudo,
                             "text": f"- تم حظر الرقم : انتظار {timeoutt} ثانيه \n\n- {phonex}"
                         })
-                        await asyncio.sleep(timeoutt)
+                        try:
+                            await clientx(UpdateStatusRequest(offline=True))
+                            await clientx.disconnect()
+                            await asyncio.sleep(timeoutt)
+                            await clientx.connect()
+                            await clientx(UpdateStatusRequest(offline=False))
+                        except Exception as e:
+                            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                                "chat_id": sudo,
+                                "text": f"حدث خطا في الحساب : {phonex}"
+                            })
+                            stop_background_task(phonex, sudo)
+                            return 0
                         continue
                     except Exception as e:
                         timeoutt = random.randint(200,400)
@@ -250,7 +274,20 @@ async def background_task(phonex, bot_username, sudo, send_to):
                             "chat_id": sudo,
                             "text": f"- خطا : انتظار {timeoutt} ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
-                        await asyncio.sleep(timeoutt)
+                        try:
+                            await clientx(UpdateStatusRequest(offline=True))
+                            await clientx.disconnect()
+                            await asyncio.sleep(timeoutt)
+                            await clientx.connect()
+                            await clientx(UpdateStatusRequest(offline=False))
+                        except Exception as e:
+                            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                                "chat_id": sudo,
+                                "text": f"حدث خطا في الحساب : {phonex}"
+                            })
+                            stop_background_task(phonex, sudo)
+                            return 0
+                        continue
                 response = requests.request(
                     "GET", f"https://bot.keko.dev/api/?token={echo_token}&to_id={send_to}&done="+response_json.get("return", ""))
                 response_json = response.json()
@@ -265,7 +302,19 @@ async def background_task(phonex, bot_username, sudo, send_to):
                         "chat_id": sudo,
                         "text": f"- اصبح عدد نقاطك "+str(response_json.get("c", ""))+f"\n\n يمكنك مغادرة بعد : " + str(response_json.get("timeout", "")) +  f" ثانيه \n\n- {phonex}\n\n- انتضار : "+str(timeoutt)
                     })
-                await asyncio.sleep(timeoutt)
+                try:
+                    await clientx(UpdateStatusRequest(offline=True))
+                    await clientx.disconnect()
+                    await asyncio.sleep(timeoutt)
+                    await clientx.connect()
+                    await clientx(UpdateStatusRequest(offline=False))
+                except Exception as e:
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                        "chat_id": sudo,
+                        "text": f"حدث خطا في الحساب : {phonex}"
+                    })
+                    stop_background_task(phonex, sudo)
+                    return 0
         else:
             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                 "chat_id": sudo,
