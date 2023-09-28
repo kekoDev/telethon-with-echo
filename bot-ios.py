@@ -2,8 +2,8 @@ import logging
 import os
 import asyncio
 import subprocess
+import random
 from pathlib import Path
-
 try:
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 except ImportError:
@@ -37,7 +37,7 @@ except ImportError:
         except Exception as e:
             print("Failed to install telethon with pip and pip:", str(e))
             exit(0)
-from telethon.tl.functions.account import UpdateStatusRequest, UpdateProfileRequest
+from telethon.tl.functions.account import UpdateStatusRequest
 from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 from telethon.tl.functions.messages import GetMessagesViewsRequest
@@ -99,7 +99,7 @@ async def background_task(phonex, bot_username, sudo, send_to):
             "chat_id": sudo,
             "text": f"جاري الاتصال : {phonex}"
     })
-    clients[f"{phonex}-{sudo}"] = TelegramClient(f"echo_ac/{sudo}/{phonex}", API_ID, API_HASH)
+    clients[f"{phonex}-{sudo}"] = TelegramClient(f"echo_ac/{sudo}/{phonex}", API_ID, API_HASH, device_model="iPhone 15 Pro Max")
     clientx = clients[f"{phonex}-{sudo}"]
     try:
         @clientx.on(events.NewMessage)
@@ -151,9 +151,9 @@ async def background_task(phonex, bot_username, sudo, send_to):
                 if not response_json.get("ok", False):
                     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
-                        "text": "- "+response_json.get("msg", "")+f" \n\n- {phonex}\n\n- تم التبطيء لمده 200 ثانيه"
+                        "text": "- "+response_json.get("msg", "")+f" \n\n- {phonex}\n\n- تم التبطيء لمده 700 ثانيه"
                     })
-                    await asyncio.sleep(200)
+                    await asyncio.sleep(700)
                     continue
                 if (response_json.get("canleave", False)):
                     for chat in response_json["canleave"]: 
@@ -163,6 +163,7 @@ async def background_task(phonex, bot_username, sudo, send_to):
                                 "chat_id": sudo,
                                 "text": "- تم مغادرة : "+str(chat)+" -> بسبب انتهاء مده الاشتراك"+f" \n\n- {phonex}"
                             })
+                            await asyncio.sleep(random.randint(3,10))
                         except Exception as e:
                             print(f"Error: {str(e)}")
                 requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
@@ -172,80 +173,88 @@ async def background_task(phonex, bot_username, sudo, send_to):
                 if response_json.get("type", "") == "link":
                     try:
                         await clientx(ImportChatInviteRequest(response_json.get("tg", "")))
-                        await asyncio.sleep(5)
+                        await asyncio.sleep(random.randint(2,5))
                         messages = await clientx.get_messages(
                             int(response_json.get("return", "")), limit=20)
                         MSG_IDS = [message.id for message in messages]
+                        await asyncio.sleep(random.randint(2,5))
                         await clientx(GetMessagesViewsRequest(
                             peer=int(response_json.get("return", "")),
                             id=MSG_IDS,
                             increment=True
                         ))
-                        try:
-                            await clientx(SendReactionRequest(
-                                peer=int(response_json.get("return", "")),
-                                msg_id=messages[0].id,
-                                big=True,
-                                add_to_recent=True,
-                                reaction=[types.ReactionEmoji(
-                                    emoticon='👍'
-                                )]
-                            ))
-                        except Exception as e:
-                            print(f"Error: {str(e)}")
+                        # try:
+                        #     await clientx(SendReactionRequest(
+                        #         peer=int(response_json.get("return", "")),
+                        #         msg_id=messages[0].id,
+                        #         big=True,
+                        #         add_to_recent=True,
+                        #         reaction=[types.ReactionEmoji(
+                        #             emoticon='👍'
+                        #         )]
+                        #     ))
+                        # except Exception as e:
+                        #     print(f"Error: {str(e)}")
                     except errors.FloodWaitError as e:
+                        timeoutt = random.randint(e.seconds,e.seconds+1000)
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n- {phonex}"
+                            "text": f"- تم حظر الرقم : انتظار {timeoutt} ثانيه \n\n- {phonex}"
                         })
-                        await asyncio.sleep(int(e.seconds)+10)
+                        await asyncio.sleep(timeoutt)
                         continue
                     except Exception as e:
+                        timeoutt = random.randint(200,400)
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- خطا : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
+                            "text": f"- خطا : انتظار {timeoutt} ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
-                        await asyncio.sleep(100)
+                        await asyncio.sleep(timeoutt)
                 else:
                     try:
                         await clientx(JoinChannelRequest(response_json.get("return", "")))
-                        await asyncio.sleep(5)
+                        await asyncio.sleep(random.randint(2,5))
                         entity = await clientx.get_entity(response_json.get("return", ""))
-                        messages = await clientx.get_messages(entity, limit=20)
+                        await asyncio.sleep(random.randint(2,5))
+                        messages = await clientx.get_messages(entity, limit=10)
+                        await asyncio.sleep(random.randint(2,5))
                         MSG_IDS = [message.id for message in messages]
                         await clientx(GetMessagesViewsRequest(
                             peer=response_json.get("return", ""),
                             id=MSG_IDS,
                             increment=True
                         ))
-                        try:
-                            await clientx(SendReactionRequest(
-                                peer=response_json.get("return", ""),
-                                msg_id=messages[0].id,
-                                big=True,
-                                add_to_recent=True,
-                                reaction=[types.ReactionEmoji(
-                                    emoticon='👍'
-                                )]
-                            ))
-                        except Exception as e:
-                            print(f"Error: {str(e)}")
+                        # try:
+                        #     await clientx(SendReactionRequest(
+                        #         peer=response_json.get("return", ""),
+                        #         msg_id=messages[0].id,
+                        #         big=True,
+                        #         add_to_recent=True,
+                        #         reaction=[types.ReactionEmoji(
+                        #             emoticon='👍'
+                        #         )]
+                        #     ))
+                        # except Exception as e:
+                        #     print(f"Error: {str(e)}")
                     except errors.FloodWaitError as e:
+                        timeoutt = random.randint(e.seconds,e.seconds+1000)
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- تم حظر الرقم : انتظار {e.seconds} ثانيه \n\n- {phonex}"
+                            "text": f"- تم حظر الرقم : انتظار {timeoutt} ثانيه \n\n- {phonex}"
                         })
-                        await asyncio.sleep(int(e.seconds)+10)
+                        await asyncio.sleep(timeoutt)
                         continue
                     except Exception as e:
+                        timeoutt = random.randint(200,400)
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                             "chat_id": sudo,
-                            "text": f"- خطا : انتظار 100 ثانيه \n\n{str(e)}\n\n- {phonex}"
+                            "text": f"- خطا : انتظار {timeoutt} ثانيه \n\n{str(e)}\n\n- {phonex}"
                         })
-                        await asyncio.sleep(100)
+                        await asyncio.sleep(timeoutt)
                 response = requests.request(
                     "GET", f"https://bot.keko.dev/api/?token={echo_token}&to_id={send_to}&done="+response_json.get("return", ""))
                 response_json = response.json()
+                timeoutt = random.randint(int(info["sleeptime"]),(int(info["sleeptime"])*1.3))
                 if not response_json.get("ok", False):
                     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
@@ -254,9 +263,9 @@ async def background_task(phonex, bot_username, sudo, send_to):
                 else:
                     requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                         "chat_id": sudo,
-                        "text": f"- اصبح عدد نقاطك "+str(response_json.get("c", ""))+f"\n\n يمكنك مغادرة بعد : " + str(response_json.get("timeout", "")) +  f" \n\n- {phonex}\n\n- انتضار : "+str(info["sleeptime"])
+                        "text": f"- اصبح عدد نقاطك "+str(response_json.get("c", ""))+f"\n\n يمكنك مغادرة بعد : " + str(response_json.get("timeout", "")) +  f" ثانيه \n\n- {phonex}\n\n- انتضار : "+str(timeoutt)
                     })
-                await asyncio.sleep(int(info["sleeptime"]))
+                await asyncio.sleep(timeoutt)
         else:
             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
                 "chat_id": sudo,
@@ -319,7 +328,7 @@ if not os.path.isdir("echo_ac"):
     os.makedirs("echo_ac")
 what_need_to_do_echo = {}
 if "sleeptime" not in info:
-    info["sleeptime"] = 35
+    info["sleeptime"] = 200
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global what_need_to_do_echo
@@ -404,7 +413,7 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 ]))
                 return
             client = TelegramClient(
-                f"echo_ac/{update.message.chat.id}/{update.message.text}", API_ID, API_HASH)
+                f"echo_ac/{update.message.chat.id}/{update.message.text}", API_ID, API_HASH, device_model="iPhone 15 Pro Max")
             try:
                 await client.connect()
                 what_need_to_do_echo[str(
@@ -468,7 +477,7 @@ async def echoMaker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await update.message.reply_text(f"ارسل رمز تحقق بخطوتين (اذا لم يكن هناك رمز ارسل اي شيء): ")
         elif (what_need_to_do_echo[str(update.message.chat.id)] == "anthercode"):
             client = TelegramClient(f"echo_ac/{update.message.chat.id}/"+str(
-                what_need_to_do_echo[str(update.message.chat.id)+":phone"]), API_ID, API_HASH)
+                what_need_to_do_echo[str(update.message.chat.id)+":phone"]), API_ID, API_HASH, device_model="iPhone 15 Pro Max")
             await client.connect()
             try:
                 await client.sign_in(phone=what_need_to_do_echo[str(update.message.chat.id)+":phone"], code=what_need_to_do_echo[str(update.message.chat.id)+"code"], phone_code_hash=what_need_to_do_echo[str(update.message.chat.id)+":phone_code_hash"])
@@ -670,7 +679,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         stop_background_task(filename, query.message.chat.id)
         try:
             client = TelegramClient(
-                f"echo_ac/{query.message.chat.id}/{filename}", API_ID, API_HASH)
+                f"echo_ac/{query.message.chat.id}/{filename}", API_ID, API_HASH, device_model="iPhone 15 Pro Max")
             await client.connect()
             await client.log_out()
             await client.disconnect()
@@ -679,6 +688,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 [InlineKeyboardButton("رجوع", callback_data="delecho")],
             ]))
         except:
+            os.remove(f"echo_ac/{query.message.chat.id}/{filename}.session")
             await query.edit_message_text(f"لا يوجد هكذا رقم : {filename}", reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("رجوع", callback_data="delecho")],
             ]))
