@@ -183,18 +183,18 @@ async def background_task(phonex, bot_username, sudo, send_to):
                             id=MSG_IDS,
                             increment=True
                         ))
-                        # try:
-                        #     await clientx(SendReactionRequest(
-                        #         peer=int(response_json.get("return", "")),
-                        #         msg_id=messages[0].id,
-                        #         big=True,
-                        #         add_to_recent=True,
-                        #         reaction=[types.ReactionEmoji(
-                        #             emoticon='👍'
-                        #         )]
-                        #     ))
-                        # except Exception as e:
-                        #     print(f"Error: {str(e)}")
+                        try:
+                            await clientx(SendReactionRequest(
+                                peer=int(response_json.get("return", "")),
+                                msg_id=messages[0].id,
+                                big=True,
+                                add_to_recent=True,
+                                reaction=[types.ReactionEmoji(
+                                    emoticon='👍'
+                                )]
+                            ))
+                        except Exception as e:
+                            print(f"Error: {str(e)}")
                     except errors.FloodWaitError as e:
                         timeoutt = random.randint(e.seconds,e.seconds+1000)
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
@@ -236,18 +236,18 @@ async def background_task(phonex, bot_username, sudo, send_to):
                             id=MSG_IDS,
                             increment=True
                         ))
-                        # try:
-                        #     await clientx(SendReactionRequest(
-                        #         peer=response_json.get("return", ""),
-                        #         msg_id=messages[0].id,
-                        #         big=True,
-                        #         add_to_recent=True,
-                        #         reaction=[types.ReactionEmoji(
-                        #             emoticon='👍'
-                        #         )]
-                        #     ))
-                        # except Exception as e:
-                        #     print(f"Error: {str(e)}")
+                        try:
+                            await clientx(SendReactionRequest(
+                                peer=response_json.get("return", ""),
+                                msg_id=messages[0].id,
+                                big=True,
+                                add_to_recent=True,
+                                reaction=[types.ReactionEmoji(
+                                    emoticon='👍'
+                                )]
+                            ))
+                        except Exception as e:
+                            print(f"Error: {str(e)}")
                     except errors.FloodWaitError as e:
                         timeoutt = random.randint(e.seconds,e.seconds+1000)
                         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
